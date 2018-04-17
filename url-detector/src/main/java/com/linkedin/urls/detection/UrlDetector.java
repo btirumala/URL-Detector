@@ -247,9 +247,9 @@ public class UrlDetector {
           // "/" was found, then we either read a scheme, or if we already read a scheme, then
           // we are reading a url in the format http://123123123/asdf
 
-          if (_hasScheme || 
-                 (_options.hasFlag(UrlDetectorOptions.CHECK_NUM_DEFAULT_DOTS) && _defaultDots > 0) ||
-                 (_options.hasFlag(UrlDetectorOptions.ALLOW_SINGLE_LEVEL_DOMAIN) && _buffer.length() > 1)) {
+          if (_hasScheme ||
+                  (_options.hasFlag(UrlDetectorOptions.CHECK_NUM_DEFAULT_DOTS) && _defaultDots > 0) ||
+                  (_options.hasFlag(UrlDetectorOptions.ALLOW_SINGLE_LEVEL_DOMAIN) && _buffer.length() > 1)) {
             //we already have the scheme, so then we already read:
             //http://something/ <- if something is all numeric then its a valid url.
             //OR we are searching for single level domains. We have buffer length > 1 condition
