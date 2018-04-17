@@ -63,6 +63,16 @@ public enum UrlDetectorOptions {
   ALLOW_SINGLE_LEVEL_DOMAIN(32); //00100000
 
   /**
+   * Checks number of dots unless scheme known
+   */
+  CHECK_NUM_DEFAULT_DOTS(64), //01000000
+
+  /**
+   * With one dot and no scheme, check the domain in the list of original gtlds and cctlds.
+   */
+  CHECK_TLDS_FOR_SINGLE_DOT(128); //10000000
+
+  /**
    * The numeric value.
    */
   private int _value;
