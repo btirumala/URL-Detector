@@ -9,6 +9,11 @@
  */
 package com.linkedin.urls.detection;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * The domain name reader reads input from a InputTextReader and validates if the content being read is a valid domain name.
  * After a domain name is read, the returning status is what to do next. If the domain is valid but a specific character is found,
@@ -16,6 +21,27 @@ package com.linkedin.urls.detection;
  * domain is valid, the return state will be to read a query string.
  */
 public class DomainNameReader {
+
+  /**
+   * Valid tlds for a single dot without a scheme
+   */
+  private static final Set<String> TLDS = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList(
+          "com", "org", "net", "int", "edu", "gov", "mil",
+          "ac", "ad", "ae", "af", "ag", "ai", "al", "am", "an", "ao", "aq", "ar", "as", "at", "au", "aw", "ax", "az",
+          "ba", "bb", "bd", "be", "bf", "bg", "bh", "bi", "bj", "bl", "bm", "bn", "bo", "bq", "br", "bs", "bt", "bv",
+          "bw", "by", "bz", "ca", "cc", "cd", "cf", "cg", "ch", "ci", "ck", "cl", "cm", "cn", "co", "cr", "cu", "cv",
+          "cw", "cx", "cy", "cz", "de", "dj", "dk", "dm", "do", "dz", "ec", "ee", "eg", "eh", "er", "es", "et", "eu",
+          "fi", "fj", "fk", "fm", "fo", "fr", "ga", "gb", "gd", "ge", "gf", "gg", "gh", "gi", "gl", "gm", "gn", "gp",
+          "gq", "gr", "gs", "gt", "gu", "gw", "gy", "hk", "hm", "hn", "hr", "ht", "hu", "id", "ie", "il", "im", "in",
+          "io", "iq", "ir", "is", "it", "je", "jm", "jo", "jp", "ke", "kg", "kh", "ki", "km", "kn", "kp", "kr", "kw",
+          "ky", "kz", "la", "lb", "lc", "li", "lk", "lr", "ls", "lt", "lu", "lv", "ly", "ma", "mc", "md", "me", "mf",
+          "mg", "mh", "mk", "ml", "mm", "mn", "mo", "mp", "mq", "mr", "ms", "mt", "mu", "mv", "mw", "mx", "my", "mz",
+          "na", "nc", "ne", "nf", "ng", "ni", "nl", "no", "np", "nr", "nu", "nz", "om", "pa", "pe", "pf", "pg", "ph",
+          "pk", "pl", "pm", "pn", "pr", "ps", "pt", "pw", "py", "qa", "re", "ro", "rs", "ru", "rw", "sa", "sb", "sc",
+          "sd", "se", "sg", "sh", "si", "sj", "sk", "sl", "sm", "sn", "so", "sr", "ss", "st", "su", "sv", "sx", "sy",
+          "sz", "tc", "td", "tf", "tg", "th", "tj", "tk", "tl", "tm", "tn", "to", "tp", "tr", "tt", "tv", "tw", "tz",
+          "ua", "ug", "uk", "um", "us", "uy", "uz", "va", "vc", "ve", "vg", "vi", "vn", "vu", "wf", "ws", "ye", "yt",
+          "za", "zm", "zw")));
 
   /**
    * The minimum length of a ascii based top level domain.
@@ -112,6 +138,10 @@ public class DomainNameReader {
   interface CharacterHandler {
     void addCharacter(char character);
   }
+  
+  interface SchemeChecker {
+    boolean hasScheme();
+  }
 
   /**
    * The currently written string buffer.
@@ -178,6 +208,8 @@ public class DomainNameReader {
    * Contains the handler for each character match.
    */
   private final CharacterHandler _characterHandler;
+  
+  private final SchemeChecker _schemeChecker;
 
   /**
    * Creates a new instance of the DomainNameReader object.
@@ -188,12 +220,13 @@ public class DomainNameReader {
    * @param characterHandler The handler to call on each non-matching character to count matching quotes and stuff.
    */
   public DomainNameReader(InputTextReader reader, StringBuilder buffer, String current, UrlDetectorOptions options,
-      CharacterHandler characterHandler) {
+      CharacterHandler characterHandler, SchemeChecker schemeChecker) {
     _buffer = buffer;
     _current = current;
     _reader = reader;
     _options = options;
     _characterHandler = characterHandler;
+    _schemeChecker = schemeChecker;
   }
 
   /**
@@ -473,6 +506,11 @@ public class DomainNameReader {
       //There is no size restriction if the top level domain is international (starts with "xn--")
       valid =
           ((topLevelStart.equalsIgnoreCase("xn--") || (_topLevelLength >= MIN_TOP_LEVEL_DOMAIN && _topLevelLength <= MAX_TOP_LEVEL_DOMAIN)));
+      
+      if (_options.hasFlag(UrlDetectorOptions.CHECK_TLDS_FOR_SINGLE_DOT)) {
+        //If number of dots == 1, then restrict to only the original gtlds and cctlds, unless hasScheme.
+        valid &= _dots == 1 && !_schemeChecker.hasScheme() ? TLDS.contains(topLevelStart.toLowerCase()) : true;
+      }
     }
 
     if (valid) {
