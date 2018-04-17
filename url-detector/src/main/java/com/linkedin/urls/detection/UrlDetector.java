@@ -34,6 +34,11 @@ public class UrlDetector {
       "http://", "https://", "ftp://", "ftps://", "http%3a//", "https%3a//", "ftp%3a//", "ftps%3a//")));
 
   /**
+   * Minimum number of default dots to read domain name in the absence of a scheme
+   */
+  private static final int MIN_DEFAULT_DOTS = 2;
+
+  /**
    * The response of character matching.
    */
   private enum CharacterMatch {
@@ -85,6 +90,11 @@ public class UrlDetector {
    * If we see a '[', didn't find an ipv6 address, and the bracket option is on, then look for urls inside the brackets.
    */
   private boolean _dontMatchIpv6 = false;
+
+  /**
+   * If no scheme detected yet then start reading domain name only after seeing MIN_DEFAULT_DOTS number of dots
+   */
+  private int _defaultDots = 0;
 
   /**
    * Stores the found urls.
@@ -188,8 +198,18 @@ public class UrlDetector {
         case '\uFF61':
         case '.': //"." was found, read the domain name using the start from length.
           _buffer.append(curr);
-          readDomainName(_buffer.substring(length));
-          length = 0;
+
+          if (_options.hasFlag(UrlDetectorOptions.CHECK_NUM_DEFAULT_DOTS)) {
+            _defaultDots++;
+            if (_hasScheme || _defaultDots >= MIN_DEFAULT_DOTS) {
+              readDomainName(_buffer.substring(length));
+              length = 0;
+            }
+          } else {
+            readDomainName(_buffer.substring(length));
+            length = 0;
+          }
+
           break;
         case '@': //Check the domain name after a username
           if (_buffer.length() > 0) {
@@ -227,7 +247,9 @@ public class UrlDetector {
           // "/" was found, then we either read a scheme, or if we already read a scheme, then
           // we are reading a url in the format http://123123123/asdf
 
-          if (_hasScheme || (_options.hasFlag(UrlDetectorOptions.ALLOW_SINGLE_LEVEL_DOMAIN) && _buffer.length() > 1)) {
+          if (_hasScheme || 
+                 (_options.hasFlag(UrlDetectorOptions.CHECK_NUM_DEFAULT_DOTS) && _defaultDots > 0) ||
+                 (_options.hasFlag(UrlDetectorOptions.ALLOW_SINGLE_LEVEL_DOMAIN) && _buffer.length() > 1)) {
             //we already have the scheme, so then we already read:
             //http://something/ <- if something is all numeric then its a valid url.
             //OR we are searching for single level domains. We have buffer length > 1 condition
@@ -532,6 +554,12 @@ public class UrlDetector {
           public void addCharacter(char character) {
             checkMatchingCharacter(character);
           }
+        },
+        new DomainNameReader.SchemeChecker() {
+          @Override
+          public boolean hasScheme() {
+            return _hasScheme;
+          }
         });
 
     //Try to read the dns and act on the response.
@@ -702,6 +730,7 @@ public class UrlDetector {
     _buffer.delete(0, _buffer.length());
 
     //reset the state of internal objects.
+    _defaultDots = 0;
     _quoteStart = false;
     _hasScheme = false;
     _dontMatchIpv6 = false;
