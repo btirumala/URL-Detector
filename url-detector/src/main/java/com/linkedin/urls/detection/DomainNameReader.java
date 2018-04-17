@@ -506,7 +506,7 @@ public class DomainNameReader {
       //There is no size restriction if the top level domain is international (starts with "xn--")
       valid =
           ((topLevelStart.equalsIgnoreCase("xn--") || (_topLevelLength >= MIN_TOP_LEVEL_DOMAIN && _topLevelLength <= MAX_TOP_LEVEL_DOMAIN)));
- 
+
       if (_options.hasFlag(UrlDetectorOptions.CHECK_TLDS_FOR_SINGLE_DOT)) {
         //If number of dots == 1, then restrict to only the original gtlds and cctlds, unless hasScheme.
         valid &= _dots == 1 && !_schemeChecker.hasScheme() ? TLDS.contains(topLevelStart.toLowerCase()) : true;
