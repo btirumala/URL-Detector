@@ -60,7 +60,7 @@ public enum UrlDetectorOptions {
   /**
    * Checks for single level domains as well. Ex: go/, http://localhost
    */
-  ALLOW_SINGLE_LEVEL_DOMAIN(32); //00100000
+  ALLOW_SINGLE_LEVEL_DOMAIN(32), //00100000
 
   /**
    * Checks number of dots unless scheme known
